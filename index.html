@@ -18,6 +18,7 @@
             border-radius: 8px;
             background: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 80%;
         }
         .spinner {
             width: 40px;
@@ -41,45 +42,49 @@
         <p>You'll be redirected automatically in a moment.</p>
     </div>
     <script>
-        // Get the cookies from URL parameters
-        function getQueryParams() {
-            const params = new URLSearchParams(window.location.search);
-            try {
-                return JSON.parse(atob(params.get('data')));
-            } catch (e) {
-                console.error('Error parsing cookie data:', e);
-                return null;
+        async function setCookiesAndRedirect() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const cookieData = urlParams.get('data');
+            
+            if (!cookieData) {
+                showError('No cookie data found');
+                return;
             }
-        }
 
-        // Set the cookies
-        function setCookies(cookies) {
-            if (!cookies) return false;
             try {
+                const cookies = JSON.parse(atob(cookieData));
+                
+                // Set each cookie
                 Object.entries(cookies).forEach(([name, value]) => {
-                    document.cookie = `${name}=${value}; domain=.cclonline.com; path=/`;
+                    document.cookie = `${name}=${value}; domain=.cclonline.com; path=/; secure`;
                 });
-                return true;
-            } catch (e) {
-                console.error('Error setting cookies:', e);
-                return false;
+
+                // Small delay to ensure cookies are set
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // First redirect to home page to establish session
+                const response = await fetch('https://www.cclonline.com', {
+                    credentials: 'include'
+                });
+
+                // Then redirect to basket
+                window.location.href = 'https://www.cclonline.com/basket/';
+            } catch (error) {
+                showError('Error setting up cart: ' + error.message);
             }
         }
 
-        // Main function
-        window.onload = function() {
-            const cookies = getQueryParams();
-            if (setCookies(cookies)) {
-                // Redirect to CCL cart
-                window.location.href = 'https://www.cclonline.com/basket/';
-            } else {
-                document.querySelector('.container').innerHTML = `
-                    <h2>Error</h2>
-                    <p>There was a problem setting up your cart.</p>
-                    <p>Please try again or contact support.</p>
-                `;
-            }
-        };
+        function showError(message) {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <h2>Error</h2>
+                <p>${message}</p>
+                <p>Please try again or contact support.</p>
+            `;
+        }
+
+        // Start the process when page loads
+        window.onload = setCookiesAndRedirect;
     </script>
 </body>
 </html>
