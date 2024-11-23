@@ -18,6 +18,7 @@
             border-radius: 8px;
             background: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 80%;
         }
         #debug {
             margin-top: 20px;
@@ -47,6 +48,7 @@
 
         async function processCart() {
             try {
+                // Get cookie data from URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const cookieData = urlParams.get('data');
                 
@@ -54,30 +56,39 @@
                     throw new Error('No cookie data found');
                 }
 
+                // Decode cookies
                 const cookies = JSON.parse(atob(cookieData));
                 log('Decoded cookies: ' + JSON.stringify(cookies, null, 2));
 
-                // Set each cookie
-                Object.entries(cookies).forEach(([name, value]) => {
-                    document.cookie = `${name}=${value}; domain=.cclonline.com; path=/; SameSite=None; Secure`;
-                    log(`Set cookie: ${name}`);
-                });
-
-                // Wait a moment for cookies to be set
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // First visit the main page to establish session
+                // First visit main page
                 updateStatus('Establishing session...');
                 await fetch('https://www.cclonline.com', {
                     mode: 'no-cors',
                     credentials: 'include'
                 });
 
-                // Wait another moment
+                // Set each cookie
+                Object.entries(cookies).forEach(([name, value]) => {
+                    const cookieString = `${name}=${value}; domain=.cclonline.com; path=/; secure`;
+                    document.cookie = cookieString;
+                    log(`Set cookie: ${name}`);
+                });
+
+                // Small delay to ensure cookies are set
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Then redirect to basket
-                updateStatus('Redirecting to cart...');
+                // Visit category page
+                updateStatus('Setting up cart...');
+                await fetch('https://www.cclonline.com/pc-components/cpu-processors/amd-processors-and-apus/', {
+                    mode: 'no-cors',
+                    credentials: 'include'
+                });
+
+                // Another small delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Finally redirect to basket
+                updateStatus('Loading cart...');
                 window.location.href = 'https://www.cclonline.com/basket/';
 
             } catch (error) {
@@ -86,7 +97,7 @@
             }
         }
 
-        // Start processing when page loads
+        // Start the process when page loads
         window.onload = processCart;
     </script>
 </body>
